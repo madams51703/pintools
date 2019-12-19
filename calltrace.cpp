@@ -30,6 +30,12 @@ string    symbol_include_list [1000000];
 int symbol_include_list_count=-1;
 string    symbol_after_list [1000000];
 int symbol_after_list_count=-1;
+string    symbol_between_list [1000000];
+string    symbol_between_format [1000000];
+int       symbol_between_format_num_of_parameter [1000000];
+int symbol_between_list_count=-1;
+
+
 /* ===================================================================== */
 /* Global Variables */
 /* ===================================================================== */
@@ -416,6 +422,53 @@ string line;
 		afterfile.close();
 	}
 
+
+	std::size_t current,previous = 0;
+	std::size_t npos = 0;
+	string format;
+	string format_part;
+        int entry = 0;
+	ifstream betweenfile ("between.txt");
+	if (betweenfile.is_open())
+	{
+		while ( getline (betweenfile,line) )
+	  	{
+			entry=0;
+    			symbol_between_list_count++;
+
+			format = "";
+			current=0;
+			previous=0;
+			current = line.find(',');
+			while (current != std::string::npos) {
+				if ( entry == 0 )
+				{
+    					symbol_between_list[symbol_between_list_count] =   line.substr(previous, current - previous);
+				}
+				else
+				{
+					format +=  line.substr(previous, current - previous) ;
+					format += " " ;
+				}
+				entry += 1;
+			        previous = current + 1;
+				current = line.find(',', previous);
+			}
+			if ( entry == 0 )
+			{
+    				symbol_between_list[symbol_between_list_count] =   line.substr(previous, current - previous);
+			}
+			else
+			{
+				format +=  line.substr(previous, current - previous) ;
+				entry += 1;
+			}
+			symbol_between_format_num_of_parameter [symbol_between_list_count] = entry;
+			symbol_between_format [symbol_between_list_count] = format;
+			
+		}
+		betweenfile.close();
+	}
     TraceFile.open(KnobOutputFile.Value().c_str());
 
     TraceFile << hex;
