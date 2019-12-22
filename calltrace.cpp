@@ -34,6 +34,10 @@ string    symbol_between_list [1000000];
 string    symbol_between_format [1000000];
 int       symbol_between_format_num_of_parameter [1000000];
 int symbol_between_list_count=-1;
+string    symbol_arg_info_list [1000000];
+char *    symbol_arg_info_c_str_list [1000000];
+char *    symbol_arg_info_format [1000000];
+int symbol_arg_info_list_count=-1;
 
 
 /* ===================================================================== */
@@ -66,6 +70,68 @@ string invalid = "invalid_rtn";
 VOID DoAfter(ADDRINT ret,string * s)
 {
     TraceFile << *s <<"  returns " << ret << endl;
+}
+
+VOID Arg1Before(char * name,char *format, ...)
+{
+int entries;
+    va_list argp;
+    va_start(argp, format);
+    TraceFile << name << "("    ;
+
+    entries=0;
+	while (*format != '\0') 
+	{
+		if (*format == '%') 
+		{
+      			format++;
+      			if (*format == '%') 
+      			{
+        			putchar('%');
+      			} 
+			else if (*format == 'c') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile << (char) va_arg(argp, int);
+				entries++;
+
+      		        } 
+			else if (*format == 'd') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile << (int) va_arg(argp, int);
+				entries++;
+      			} 
+			else if (*format == 's') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
+				entries++;
+      			} 
+			else 
+			{
+        		fputs("Not implemented", stdout);
+      			}		
+		} 
+		else 
+     		{
+  			putchar(*format);
+    		}
+
+		format++;
+	}
+	TraceFile << ")" << endl;
+
+    va_end(argp);
 }
 
 int is_symbol_excluded(const string * string_to_test)
@@ -132,22 +198,47 @@ const string *Target2String(ADDRINT target)
     }
 }
 
+
 VOID Image(IMG img, VOID *v)
 {
+    // Instrument the malloc() and free() functions.  Print the input argument
+    // of each malloc() or free(), and the return value of malloc().
+    //
+    //  Find the malloc() function.
+    // Find the free() function.
 int loop_count;
+int my_length;
 
-   for (loop_count = 0 ; loop_count <= symbol_after_list_count ;  loop_count ++ )
-   {
-    RTN my_rtn = RTN_FindByName(img, (symbol_after_list[loop_count]).c_str() );
-    	if (RTN_Valid(my_rtn))
-    	{
-       	 RTN_Open(my_rtn);
-       	 RTN_InsertCall(my_rtn, IPOINT_AFTER, (AFUNPTR)DoAfter, IARG_FUNCRET_EXITPOINT_VALUE, IARG_PTR, &(symbol_after_list[loop_count] ) , IARG_END);
-       	 RTN_Close(my_rtn);
-    	}
-    }
-}    
+        for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
+	{
+		string include_string = ( string )(symbol_arg_info_list[loop_count]) ;
 
+    		RTN freeRtn = RTN_FindByName(img, include_string.c_str());
+    		if (RTN_Valid(freeRtn))
+    		{
+        		RTN_Open(freeRtn);
+        		// Instrument free() to print the input argument value.
+        		RTN_InsertCall(freeRtn, IPOINT_BEFORE, (AFUNPTR)Arg1Before,
+				IARG_ADDRINT,  symbol_arg_info_c_str_list[loop_count] ,
+				IARG_ADDRINT , symbol_arg_info_format[loop_count],
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 4,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 5,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 6,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 7,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 8,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 9,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 10,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 11,
+                       		IARG_END);
+
+        		RTN_Close(freeRtn);
+    		}
+	}
+}
 /* ===================================================================== */
 
 VOID  do_call_args(const string *s, ADDRINT arg0)
@@ -251,20 +342,87 @@ VOID Trace(TRACE trace, VOID *v)
                 {
 		    exclude_call = is_symbol_excluded(code_name);
 		    string is_all = ( string )(symbol_include_list[0] );
-
 		    if ( is_all.compare("*")  == 0 && exclude_call == 0 )
 		    {
-                    		INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call),
+		    		int found_arg;
+				found_arg=-1;
+        			for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
+				{
+					if ( *code_name == symbol_arg_info_list[loop_count]  )
+					{
+						found_arg=loop_count;
+
+					}
+
+				}
+				if (found_arg > -1)
+				{
+                    			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(Arg1Before),
+                                             IARG_PTR,  symbol_arg_info_c_str_list[found_arg],
+					     IARG_PTR, symbol_arg_info_format[found_arg],
+				IARG_FUNCARG_CALLSITE_VALUE, 0,
+				IARG_FUNCARG_CALLSITE_VALUE, 1,
+				IARG_FUNCARG_CALLSITE_VALUE, 2,
+				IARG_FUNCARG_CALLSITE_VALUE, 3,
+				IARG_FUNCARG_CALLSITE_VALUE, 4,
+				IARG_FUNCARG_CALLSITE_VALUE, 5,
+				IARG_FUNCARG_CALLSITE_VALUE, 6,
+				IARG_FUNCARG_CALLSITE_VALUE, 7,
+				IARG_FUNCARG_CALLSITE_VALUE, 8,
+				IARG_FUNCARG_CALLSITE_VALUE, 9,
+				IARG_FUNCARG_CALLSITE_VALUE, 10,
+				IARG_FUNCARG_CALLSITE_VALUE, 11,
+					     IARG_END);
+
+				}
+				else
+				{
+                    			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call),
                                              IARG_PTR, Target2String(target), IARG_END);
+				}
 		    }
 		    else
 		    {
 		    	if ( is_symbol_included(code_name) == 1 && exclude_call == 0 )
 			{
 
-                    		INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call),
-                                             IARG_PTR, Target2String(target), IARG_END);
 		    		
+		    		int found_arg;
+				found_arg=-1;
+        			for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
+				{
+					if ( *code_name == symbol_arg_info_list[loop_count]  )
+					{
+						found_arg=loop_count;
+
+					}
+
+				}
+				if (found_arg > -1)
+				{
+                    			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(Arg1Before),
+                                             IARG_PTR,  symbol_arg_info_c_str_list[found_arg],
+					     IARG_PTR, symbol_arg_info_format[found_arg],
+				IARG_FUNCARG_CALLSITE_VALUE, 0,
+				IARG_FUNCARG_CALLSITE_VALUE, 1,
+				IARG_FUNCARG_CALLSITE_VALUE, 2,
+				IARG_FUNCARG_CALLSITE_VALUE, 3,
+				IARG_FUNCARG_CALLSITE_VALUE, 4,
+				IARG_FUNCARG_CALLSITE_VALUE, 5,
+				IARG_FUNCARG_CALLSITE_VALUE, 6,
+				IARG_FUNCARG_CALLSITE_VALUE, 7,
+				IARG_FUNCARG_CALLSITE_VALUE, 8,
+				IARG_FUNCARG_CALLSITE_VALUE, 9,
+				IARG_FUNCARG_CALLSITE_VALUE, 10,
+				IARG_FUNCARG_CALLSITE_VALUE, 11,
+					     IARG_END);
+
+				}
+				else
+				{
+                    			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call),
+                                             IARG_PTR, Target2String(target), IARG_END);
+				}
 		    	}
 		   }
                 }
@@ -389,6 +547,51 @@ string line;
         return Usage();
     }
     
+   // Load argument data that we know about 
+	std::size_t current,previous = 0;
+	std::size_t npos = 0;
+	string format;
+	string format_part;
+	int entry = 0;
+	ifstream arg_infofile ("arg_info.txt");
+	if (arg_infofile.is_open())
+	{
+		while ( getline (arg_infofile,line) )
+	  	{
+			entry=0;
+    			symbol_arg_info_list_count++;
+
+			format = "";
+			current=0;
+			previous=0;
+			current = line.find(',');
+			while (current != std::string::npos) {
+				if ( entry == 0 )
+				{
+    					symbol_arg_info_list[symbol_arg_info_list_count] =   line.substr(previous, current - previous);
+					symbol_arg_info_c_str_list[symbol_arg_info_list_count] = strdup ( (line.substr(previous, current - previous) ).c_str() );
+				}
+				else
+				{
+					format +=  line.substr(previous, current - previous) ;
+				}
+				entry += 1;
+			        previous = current + 1;
+				current = line.find(',', previous);
+			}
+			if ( entry == 0 )
+			{
+    				symbol_arg_info_list[symbol_arg_info_list_count] =   line.substr(previous, current - previous);
+			}
+			else
+			{
+				format +=  line.substr(previous, current - previous) ;
+			}
+			symbol_arg_info_format [symbol_arg_info_list_count] = strdup(format.c_str() );
+			
+		}
+		arg_infofile.close();
+	}
 	ifstream myfile ("include.txt");
 	if (myfile.is_open())
 	{
@@ -423,52 +626,6 @@ string line;
 	}
 
 
-	std::size_t current,previous = 0;
-	std::size_t npos = 0;
-	string format;
-	string format_part;
-        int entry = 0;
-	ifstream betweenfile ("between.txt");
-	if (betweenfile.is_open())
-	{
-		while ( getline (betweenfile,line) )
-	  	{
-			entry=0;
-    			symbol_between_list_count++;
-
-			format = "";
-			current=0;
-			previous=0;
-			current = line.find(',');
-			while (current != std::string::npos) {
-				if ( entry == 0 )
-				{
-    					symbol_between_list[symbol_between_list_count] =   line.substr(previous, current - previous);
-				}
-				else
-				{
-					format +=  line.substr(previous, current - previous) ;
-					format += " " ;
-				}
-				entry += 1;
-			        previous = current + 1;
-				current = line.find(',', previous);
-			}
-			if ( entry == 0 )
-			{
-    				symbol_between_list[symbol_between_list_count] =   line.substr(previous, current - previous);
-			}
-			else
-			{
-				format +=  line.substr(previous, current - previous) ;
-				entry += 1;
-			}
-			symbol_between_format_num_of_parameter [symbol_between_list_count] = entry;
-			symbol_between_format [symbol_between_list_count] = format;
-			
-		}
-		betweenfile.close();
-	}
     TraceFile.open(KnobOutputFile.Value().c_str());
 
     TraceFile << hex;
@@ -482,7 +639,7 @@ string line;
     TraceFile.write(trace_header.c_str(),trace_header.size());
     
     TRACE_AddInstrumentFunction(Trace, 0);
-    IMG_AddInstrumentFunction(Image, 0);
+//    IMG_AddInstrumentFunction(Image, 0);
     PIN_AddFiniFunction(Fini, 0);
 
     // Never returns
