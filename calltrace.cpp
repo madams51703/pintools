@@ -117,6 +117,15 @@ int entries;
         			TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
 				entries++;
       			} 
+			else if (*format == 'n') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile <<"\"" << "unknown" << "\"" ;
+				entries++;
+      			} 
 			else 
 			{
         		fputs("Not implemented", stdout);
@@ -207,7 +216,7 @@ VOID Image(IMG img, VOID *v)
     //  Find the malloc() function.
     // Find the free() function.
 int loop_count;
-int my_length;
+//int my_length;
 
         for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
 	{
@@ -252,8 +261,8 @@ VOID  do_call_args_indirect(ADDRINT target, BOOL taken, ADDRINT arg0)
 {
 int exclude_call;
     exclude_call=0;
-    int loop_count;
-    int my_length;
+    //int loop_count;
+    //int my_length;
 
     if( !taken ) return;
     
@@ -283,13 +292,12 @@ VOID  do_call_indirect(ADDRINT target, BOOL taken)
 int exclude_call;
     exclude_call=0;
     int loop_count;
-    int my_length;
+    //int my_length;
     string is_all = ( string )(symbol_include_list[0] );
 
     if( !taken ) return;
     const string *s = Target2String(target);
     exclude_call = is_symbol_excluded(s);
-
     if ( exclude_call == 0 )
     {
 	if ( is_all.compare("*")  == 0 && exclude_call == 0 )
@@ -313,13 +321,181 @@ int exclude_call;
     if (s != &invalid)
         delete s;
 }
+
+
+VOID  do_call_indirect_var(ADDRINT target, BOOL taken,char *format,...)
+{
+int exclude_call;
+    exclude_call=0;
+    int loop_count;
+    //int my_length;
+    string is_all = ( string )(symbol_include_list[0] );
+
+    if( !taken ) return;
+    const string *s = Target2String(target);
+    exclude_call = is_symbol_excluded(s);
+    int entries;
+    va_list argp;
+    va_start(argp, format);
+
+    if ( exclude_call == 0 )
+    {
+	if ( is_all.compare("*")  == 0 && exclude_call == 0 )
+	{
+	
+    		TraceFile << *s << "("    ;
+
+    		entries=0;
+		while (*format != '\0') 
+		{
+			if (*format == '%') 
+			{
+      				format++;
+      				if (*format == '%') 
+      				{	
+        				putchar('%');
+      				} 
+				else if (*format == 'c') 
+      				{
+					if (entries > 0 )
+					{
+						TraceFile <<",";
+					}
+        				TraceFile << (char) va_arg(argp, int);
+					entries++;
+
+      		        	} 
+				else if (*format == 'd') 
+      					{
+						if (entries > 0 )
+						{
+							TraceFile <<",";
+						}
+        					TraceFile << (int) va_arg(argp, int);
+						entries++;
+      					} 
+				else if (*format == 's') 
+      				{
+					if (entries > 0 )
+					{
+						TraceFile <<",";
+					}
+        				TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
+					entries++;
+      				} 
+				else if (*format == 'n') 
+      				{
+					if (entries > 0 )
+					{
+						TraceFile <<",";
+					}
+        				TraceFile <<"\"" << "unknown" << "\"" ;
+					entries++;
+      				} 
+				else 
+				{
+        				fputs("Not implemented", stdout);
+      				}		
+			} 
+			else 
+     			{
+  				putchar(*format);
+    			}
+
+			format++;
+		}
+		TraceFile << ")" << endl;
+
+    		va_end(argp);
+	}
+	else
+	{
+		for ( loop_count=0 ; loop_count <= symbol_include_list_count  && exclude_call ==0 ; loop_count++ )
+		{
+			string my_string = ( string )(symbol_include_list[loop_count]) ;
+		    	int my_length = my_string.length();
+		   	if ( (*s).compare(0,my_length,my_string,0,my_length) == 0 )
+			{
+
+    				TraceFile << *s << "("    ;
+
+    				entries=0;
+				while (*format != '\0') 
+				{
+					if (*format == '%') 
+					{
+      						format++;
+      						if (*format == '%') 
+      						{
+        						putchar('%');
+      						} 
+						else if (*format == 'c') 
+      							{
+								if (entries > 0 )
+								{
+									TraceFile <<",";
+								}
+        							TraceFile << (char) va_arg(argp, int);
+								entries++;
+
+      		        				} 
+						else if (*format == 'd') 
+      						{
+							if (entries > 0 )
+							{
+								TraceFile <<",";
+							}
+        						TraceFile << (int) va_arg(argp, int);
+							entries++;
+      						} 
+						else if (*format == 's') 
+      							{
+								if (entries > 0 )
+								{
+									TraceFile <<",";
+								}
+        							TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
+								entries++;
+      							} 
+						else if (*format == 'n') 
+      						{
+							if (entries > 0 )
+							{
+								TraceFile <<",";
+							}
+        						TraceFile <<"\"" << "unknown" << "\"" ;
+							entries++;
+      						} 
+						else 
+						{
+        						fputs("Not implemented", stdout);
+			      			}		
+					} 
+					else 
+     					{
+  						putchar(*format);
+    					}
+
+					format++;
+				}
+				TraceFile << ")" << endl;
+
+    				va_end(argp);
+			}
+		}
+	}
+    }
+    
+    if (s != &invalid)
+        delete s;
+}
 /* ===================================================================== */
 
 VOID Trace(TRACE trace, VOID *v)
 {
     const BOOL print_args = KnobPrintArgs.Value();
     int loop_count; 
-    int my_length;
+    //int my_length;
     int exclude_call=0; 
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
     {
@@ -360,19 +536,19 @@ VOID Trace(TRACE trace, VOID *v)
                     			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(Arg1Before),
                                              IARG_PTR,  symbol_arg_info_c_str_list[found_arg],
 					     IARG_PTR, symbol_arg_info_format[found_arg],
-				IARG_FUNCARG_CALLSITE_VALUE, 0,
-				IARG_FUNCARG_CALLSITE_VALUE, 1,
-				IARG_FUNCARG_CALLSITE_VALUE, 2,
-				IARG_FUNCARG_CALLSITE_VALUE, 3,
-				IARG_FUNCARG_CALLSITE_VALUE, 4,
-				IARG_FUNCARG_CALLSITE_VALUE, 5,
-				IARG_FUNCARG_CALLSITE_VALUE, 6,
-				IARG_FUNCARG_CALLSITE_VALUE, 7,
-				IARG_FUNCARG_CALLSITE_VALUE, 8,
-				IARG_FUNCARG_CALLSITE_VALUE, 9,
-				IARG_FUNCARG_CALLSITE_VALUE, 10,
-				IARG_FUNCARG_CALLSITE_VALUE, 11,
-					     IARG_END);
+						IARG_FUNCARG_CALLSITE_VALUE, 0,
+						IARG_FUNCARG_CALLSITE_VALUE, 1,
+						IARG_FUNCARG_CALLSITE_VALUE, 2,
+						IARG_FUNCARG_CALLSITE_VALUE, 3,
+						IARG_FUNCARG_CALLSITE_VALUE, 4,
+						IARG_FUNCARG_CALLSITE_VALUE, 5,
+						IARG_FUNCARG_CALLSITE_VALUE, 6,
+						IARG_FUNCARG_CALLSITE_VALUE, 7,
+						IARG_FUNCARG_CALLSITE_VALUE, 8,
+						IARG_FUNCARG_CALLSITE_VALUE, 9,
+						IARG_FUNCARG_CALLSITE_VALUE, 10,
+						IARG_FUNCARG_CALLSITE_VALUE, 11,
+						IARG_END);
 
 				}
 				else
@@ -448,15 +624,90 @@ VOID Trace(TRACE trace, VOID *v)
 		    		if ( is_all.compare("*") == 0 && exclude_call == 0 )
 		    		{
 
+			    		int found_arg;
+					found_arg=-1;
+       		 			for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
+					{
+						if ( call_name == symbol_arg_info_list[loop_count]  )
+						{
+							found_arg=loop_count;
+	
+						}
+
+					}
+					if (found_arg > -1)
+					{
+       		             			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
+       		                                	IARG_BRANCH_TARGET_ADDR,
+							IARG_BRANCH_TAKEN,
+							IARG_PTR, symbol_arg_info_format[found_arg],
+							IARG_FUNCARG_CALLSITE_VALUE, 0,
+							IARG_FUNCARG_CALLSITE_VALUE, 1,
+							IARG_FUNCARG_CALLSITE_VALUE, 2,
+							IARG_FUNCARG_CALLSITE_VALUE, 3,
+							IARG_FUNCARG_CALLSITE_VALUE, 4,
+							IARG_FUNCARG_CALLSITE_VALUE, 5,
+							IARG_FUNCARG_CALLSITE_VALUE, 6,
+							IARG_FUNCARG_CALLSITE_VALUE, 7,
+							IARG_FUNCARG_CALLSITE_VALUE, 8,
+							IARG_FUNCARG_CALLSITE_VALUE, 9,
+							IARG_FUNCARG_CALLSITE_VALUE, 10,
+							IARG_FUNCARG_CALLSITE_VALUE, 11,
+					     			IARG_END);
+					}
+					else
+					{
+
                     					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect),
                        		       			     IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
+					}
 				}
+					
 				else
 				{
 					if (is_symbol_included(&call_name ) )
 					{
+
+
+		    				int found_arg;
+						found_arg=-1;
+        					for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
+						{
+							if ( call_name == symbol_arg_info_list[loop_count]  )
+							{
+								found_arg=loop_count;
+
+							}
+
+						}
+						if (found_arg > -1)
+						{
+                    					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
+                                             				IARG_BRANCH_TARGET_ADDR,
+									IARG_BRANCH_TAKEN,
+					     			IARG_PTR, symbol_arg_info_format[found_arg],
+								IARG_FUNCARG_CALLSITE_VALUE, 0,
+								IARG_FUNCARG_CALLSITE_VALUE, 1,
+								IARG_FUNCARG_CALLSITE_VALUE, 2,
+								IARG_FUNCARG_CALLSITE_VALUE, 3,
+								IARG_FUNCARG_CALLSITE_VALUE, 4,
+								IARG_FUNCARG_CALLSITE_VALUE, 5,
+								IARG_FUNCARG_CALLSITE_VALUE, 6,
+								IARG_FUNCARG_CALLSITE_VALUE, 7,
+								IARG_FUNCARG_CALLSITE_VALUE, 8,
+								IARG_FUNCARG_CALLSITE_VALUE, 9,
+								IARG_FUNCARG_CALLSITE_VALUE, 10,
+								IARG_FUNCARG_CALLSITE_VALUE, 11,
+					     				IARG_END);
+
+						}
+						else
+						{
+
+
                     						INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect),
                        			       			     IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
+						}
 
 					}
 					
@@ -488,8 +739,46 @@ VOID Trace(TRACE trace, VOID *v)
 		    		string is_all = ( string )(symbol_include_list[0] );
 		    		if ( is_all.compare("*") == 0  && exclude_call == 0 )
 		    		{
+
+
+		    			int found_arg;
+					found_arg=-1;
+        				for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
+					{
+						if ( call_name == symbol_arg_info_list[loop_count]  )
+						{
+							found_arg=loop_count;
+
+						}
+
+					}
+					if (found_arg > -1)
+					{
+                    				INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
+								IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,
+					     		IARG_PTR, symbol_arg_info_format[found_arg],
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 4,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 5,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 6,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 7,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 8,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 9,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 10,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 11,
+					     			IARG_END);
+
+				}
+				else
+				{
+
+
                     					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect),
                                    				IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
+				}
 
 					if (is_symbol_after(&call_name) == 1 )
 					{
@@ -503,8 +792,43 @@ VOID Trace(TRACE trace, VOID *v)
 					if (is_symbol_included(&call_name ) )
 					{
 
+
+		    				int found_arg;
+					found_arg=-1;
+        				for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
+					{
+						if ( call_name == symbol_arg_info_list[loop_count]  )
+						{	
+							found_arg=loop_count;
+
+						}
+
+					}
+					if (found_arg > -1)
+					{
+                    				INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
+							IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,
+					     		IARG_PTR, symbol_arg_info_format[found_arg],
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 4,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 5,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 6,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 7,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 8,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 9,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 10,
+							IARG_FUNCARG_ENTRYPOINT_VALUE, 11,
+					     			IARG_END);
+
+					}
+					else
+					{
                     					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect),
-                                   				IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
+                                  				IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
+					}
 					
 						if (is_symbol_after(&call_name) == 1 )
 						{	
@@ -549,7 +873,7 @@ string line;
     
    // Load argument data that we know about 
 	std::size_t current,previous = 0;
-	std::size_t npos = 0;
+//	std::size_t npos = 0;
 	string format;
 	string format_part;
 	int entry = 0;
