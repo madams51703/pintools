@@ -321,12 +321,97 @@ int exclude_call;
     if (s != &invalid)
         delete s;
 }
+VOID report(char * name,char * format,...)
+{
+	ADDRINT p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11;
+	int entries;
+	
+	va_list argp;
+	va_start(argp, format);
+	p1= va_arg(argp, ADDRINT);
+	p2= va_arg(argp, ADDRINT);
+	p3= va_arg(argp, ADDRINT);
+	p4= va_arg(argp, ADDRINT);
+	p5= va_arg(argp, ADDRINT);
+	p6= va_arg(argp, ADDRINT);
+	p7= va_arg(argp, ADDRINT);
+	p8= va_arg(argp, ADDRINT);
+	p9= va_arg(argp, ADDRINT);
+	p10= va_arg(argp, ADDRINT);
+	p11= va_arg(argp, ADDRINT);
 
+	TraceFile << *name << "("    ;
+
+	entries=0;
+	while (*format != '\0') 
+	{
+		if (*format == '%') 
+		{
+      			format++;
+      			if (*format == '%') 
+      			{	
+        			putchar('%');
+      			} 
+			else if (*format == 'c') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile << (char) va_arg(argp, int);
+				entries++;
+
+      		        } 
+			else if (*format == 'd') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile << (int) va_arg(argp, int);
+				entries++;
+      			} 
+			else if (*format == 's') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
+				entries++;
+      			} 
+			else if (*format == 'n') 
+      				{
+					if (entries > 0 )
+					{
+						TraceFile <<",";
+					}
+        				TraceFile <<"\"" << "unknown" << "\"" ;
+					entries++;
+      				} 
+				else 
+				{
+        				fputs("Not implemented", stdout);
+      				}		
+			} 
+			else 
+     			{
+  				putchar(*format);
+    			}
+
+			format++;
+		}
+		TraceFile << ")" << endl;
+
+    		va_end(argp);
+
+}
 
 VOID  do_call_indirect_var(ADDRINT target, BOOL taken,char *format,...)
 {
 int exclude_call;
     exclude_call=0;
+    char * name;
     int loop_count;
     //int my_length;
     string is_all = ( string )(symbol_include_list[0] );
@@ -335,14 +420,32 @@ int exclude_call;
     const string *s = Target2String(target);
     exclude_call = is_symbol_excluded(s);
     int entries;
+    ADDRINT p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11;
+    
+    name = strdup(&(*s->c_str() ));
+
     va_list argp;
     va_start(argp, format);
+    p1= va_arg(argp, ADDRINT);
+    p2= va_arg(argp, ADDRINT);
+    p3= va_arg(argp, ADDRINT);
+    p4= va_arg(argp, ADDRINT);
+    p5= va_arg(argp, ADDRINT);
+    p6= va_arg(argp, ADDRINT);
+    p7= va_arg(argp, ADDRINT);
+    p8= va_arg(argp, ADDRINT);
+    p9= va_arg(argp, ADDRINT);
+    p10= va_arg(argp, ADDRINT);
+    p11= va_arg(argp, ADDRINT);
+
 
     if ( exclude_call == 0 )
     {
 	if ( is_all.compare("*")  == 0 && exclude_call == 0 )
 	{
-	
+		printf("IN NEW REPORT\n");
+		report(name,format,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
+		exit(1);
     		TraceFile << *s << "("    ;
 
     		entries=0;
