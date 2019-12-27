@@ -16,6 +16,9 @@
 #include "pin.H"
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <locale.h>
+#include <wchar.h>
 using namespace std;
 using std::hex;
 using std::cerr;
@@ -39,7 +42,7 @@ char *    symbol_arg_info_c_str_list [1000000];
 char *    symbol_arg_info_format [1000000];
 int symbol_arg_info_list_count=-1;
 
-
+char empty_string[]="";
 /* ===================================================================== */
 /* Global Variables */
 /* ===================================================================== */
@@ -72,21 +75,21 @@ VOID DoAfter(ADDRINT ret,string * s)
     TraceFile << *s <<"  returns " << ret << endl;
 }
 
-VOID Arg1Before(char * name,char *format, ...)
+VOID report(char * name,char * format,...)
 {
-int entries;
-    va_list argp;
-    va_start(argp, format);
-    TraceFile << name << "("    ;
-
-    entries=0;
+	int entries;
+	
+	va_list argp;
+	va_start(argp, format);
+	TraceFile << name << "("    ;
+	entries=0;
 	while (*format != '\0') 
 	{
 		if (*format == '%') 
 		{
       			format++;
       			if (*format == '%') 
-      			{
+      			{	
         			putchar('%');
       			} 
 			else if (*format == 'c') 
@@ -108,6 +111,16 @@ int entries;
         			TraceFile << (int) va_arg(argp, int);
 				entries++;
       			} 
+			else if (*format == 'u') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+				setlocale(LC_CTYPE,"UTF-16");
+        			TraceFile <<"\"" << (wchar_t * )  va_arg(argp,  wchar_t * ) << "\"" ;
+				entries++;
+			}
 			else if (*format == 's') 
       			{
 				if (entries > 0 )
@@ -118,29 +131,72 @@ int entries;
 				entries++;
       			} 
 			else if (*format == 'n') 
-      			{
-				if (entries > 0 )
+      				{
+					if (entries > 0 )
+					{
+						TraceFile <<",";
+					}
+        				TraceFile <<"\"" << "unknown" << "\"" ;
+					entries++;
+      				} 
+				else 
 				{
-					TraceFile <<",";
-				}
-        			TraceFile <<"\"" << "unknown" << "\"" ;
-				entries++;
-      			} 
+        				fputs("Not implemented", stdout);
+      				}		
+			} 
 			else 
-			{
-        		fputs("Not implemented", stdout);
-      			}		
-		} 
-		else 
-     		{
-  			putchar(*format);
-    		}
+     			{
+  				putchar(*format);
+    			}
 
-		format++;
-	}
-	TraceFile << ")" << endl;
+			format++;
+		}
+		TraceFile << ")" << endl;
 
+    		va_end(argp);
+
+}
+VOID Arg1Before(string * name, ...)
+{
+	int found_arg;
+	int loop_count;
+    ADDRINT p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11;
+        char * call_name;
+ va_list argp;
+    va_start(argp, name);
+    p1= va_arg(argp, ADDRINT);
+    p2= va_arg(argp, ADDRINT);
+    p3= va_arg(argp, ADDRINT);
+    p4= va_arg(argp, ADDRINT);
+    p5= va_arg(argp, ADDRINT);
+    p6= va_arg(argp, ADDRINT);
+    p7= va_arg(argp, ADDRINT);
+    p8= va_arg(argp, ADDRINT);
+    p9= va_arg(argp, ADDRINT);
+    p10= va_arg(argp, ADDRINT);
+    p11= va_arg(argp, ADDRINT);
     va_end(argp);
+    call_name = strdup(name->c_str() );
+	found_arg=-1;
+        for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
+	{
+		if ( *name == symbol_arg_info_list[loop_count]  )
+		{
+			found_arg=loop_count;
+			TraceFile << "Found " << *name << "In Arg1Before arg_list lookup " << endl;
+
+		}
+	}
+
+    if (found_arg > -1)
+    {
+    	report(call_name,symbol_arg_info_format[found_arg],p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
+    }
+    else
+    {
+    	report(call_name,empty_string,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
+    }
+
 }
 
 int is_symbol_excluded(const string * string_to_test)
@@ -157,6 +213,7 @@ int my_length;
 				return 1;	
 			}
 	}
+	
 return 0;
 
 }
@@ -321,97 +378,13 @@ int exclude_call;
     if (s != &invalid)
         delete s;
 }
-VOID report(char * name,char * format,...)
-{
-	ADDRINT p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11;
-	int entries;
-	
-	va_list argp;
-	va_start(argp, format);
-	p1= va_arg(argp, ADDRINT);
-	p2= va_arg(argp, ADDRINT);
-	p3= va_arg(argp, ADDRINT);
-	p4= va_arg(argp, ADDRINT);
-	p5= va_arg(argp, ADDRINT);
-	p6= va_arg(argp, ADDRINT);
-	p7= va_arg(argp, ADDRINT);
-	p8= va_arg(argp, ADDRINT);
-	p9= va_arg(argp, ADDRINT);
-	p10= va_arg(argp, ADDRINT);
-	p11= va_arg(argp, ADDRINT);
 
-	TraceFile << *name << "("    ;
-
-	entries=0;
-	while (*format != '\0') 
-	{
-		if (*format == '%') 
-		{
-      			format++;
-      			if (*format == '%') 
-      			{	
-        			putchar('%');
-      			} 
-			else if (*format == 'c') 
-      			{
-				if (entries > 0 )
-				{
-					TraceFile <<",";
-				}
-        			TraceFile << (char) va_arg(argp, int);
-				entries++;
-
-      		        } 
-			else if (*format == 'd') 
-      			{
-				if (entries > 0 )
-				{
-					TraceFile <<",";
-				}
-        			TraceFile << (int) va_arg(argp, int);
-				entries++;
-      			} 
-			else if (*format == 's') 
-      			{
-				if (entries > 0 )
-				{
-					TraceFile <<",";
-				}
-        			TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
-				entries++;
-      			} 
-			else if (*format == 'n') 
-      				{
-					if (entries > 0 )
-					{
-						TraceFile <<",";
-					}
-        				TraceFile <<"\"" << "unknown" << "\"" ;
-					entries++;
-      				} 
-				else 
-				{
-        				fputs("Not implemented", stdout);
-      				}		
-			} 
-			else 
-     			{
-  				putchar(*format);
-    			}
-
-			format++;
-		}
-		TraceFile << ")" << endl;
-
-    		va_end(argp);
-
-}
-
-VOID  do_call_indirect_var(ADDRINT target, BOOL taken,char *format,...)
+VOID  do_call_indirect_var(string * calling_name,ADDRINT target, BOOL taken,...)
 {
 int exclude_call;
     exclude_call=0;
     char * name;
+    int found_arg;
     int loop_count;
     //int my_length;
     string is_all = ( string )(symbol_include_list[0] );
@@ -419,13 +392,11 @@ int exclude_call;
     if( !taken ) return;
     const string *s = Target2String(target);
     exclude_call = is_symbol_excluded(s);
-    int entries;
     ADDRINT p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11;
-    
     name = strdup(&(*s->c_str() ));
 
     va_list argp;
-    va_start(argp, format);
+    va_start(argp, taken);
     p1= va_arg(argp, ADDRINT);
     p2= va_arg(argp, ADDRINT);
     p3= va_arg(argp, ADDRINT);
@@ -437,79 +408,30 @@ int exclude_call;
     p9= va_arg(argp, ADDRINT);
     p10= va_arg(argp, ADDRINT);
     p11= va_arg(argp, ADDRINT);
+    va_end(argp);
+	found_arg=-1;
+        for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
+	{
+		if ( *s == symbol_arg_info_list[loop_count]  )
+		{
+			found_arg=loop_count;
 
+		}
+	}
 
     if ( exclude_call == 0 )
     {
 	if ( is_all.compare("*")  == 0 && exclude_call == 0 )
 	{
-		printf("IN NEW REPORT\n");
-		report(name,format,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
-		exit(1);
-    		TraceFile << *s << "("    ;
-
-    		entries=0;
-		while (*format != '\0') 
+		if ( found_arg> -1 )
 		{
-			if (*format == '%') 
-			{
-      				format++;
-      				if (*format == '%') 
-      				{	
-        				putchar('%');
-      				} 
-				else if (*format == 'c') 
-      				{
-					if (entries > 0 )
-					{
-						TraceFile <<",";
-					}
-        				TraceFile << (char) va_arg(argp, int);
-					entries++;
-
-      		        	} 
-				else if (*format == 'd') 
-      					{
-						if (entries > 0 )
-						{
-							TraceFile <<",";
-						}
-        					TraceFile << (int) va_arg(argp, int);
-						entries++;
-      					} 
-				else if (*format == 's') 
-      				{
-					if (entries > 0 )
-					{
-						TraceFile <<",";
-					}
-        				TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
-					entries++;
-      				} 
-				else if (*format == 'n') 
-      				{
-					if (entries > 0 )
-					{
-						TraceFile <<",";
-					}
-        				TraceFile <<"\"" << "unknown" << "\"" ;
-					entries++;
-      				} 
-				else 
-				{
-        				fputs("Not implemented", stdout);
-      				}		
-			} 
-			else 
-     			{
-  				putchar(*format);
-    			}
-
-			format++;
+			report(name,symbol_arg_info_format[found_arg],p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
 		}
-		TraceFile << ")" << endl;
-
-    		va_end(argp);
+		else
+		{
+			report(name,empty_string,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
+		}
+	
 	}
 	else
 	{
@@ -519,71 +441,15 @@ int exclude_call;
 		    	int my_length = my_string.length();
 		   	if ( (*s).compare(0,my_length,my_string,0,my_length) == 0 )
 			{
-
-    				TraceFile << *s << "("    ;
-
-    				entries=0;
-				while (*format != '\0') 
+				if (found_arg > -1 )
 				{
-					if (*format == '%') 
-					{
-      						format++;
-      						if (*format == '%') 
-      						{
-        						putchar('%');
-      						} 
-						else if (*format == 'c') 
-      							{
-								if (entries > 0 )
-								{
-									TraceFile <<",";
-								}
-        							TraceFile << (char) va_arg(argp, int);
-								entries++;
-
-      		        				} 
-						else if (*format == 'd') 
-      						{
-							if (entries > 0 )
-							{
-								TraceFile <<",";
-							}
-        						TraceFile << (int) va_arg(argp, int);
-							entries++;
-      						} 
-						else if (*format == 's') 
-      							{
-								if (entries > 0 )
-								{
-									TraceFile <<",";
-								}
-        							TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
-								entries++;
-      							} 
-						else if (*format == 'n') 
-      						{
-							if (entries > 0 )
-							{
-								TraceFile <<",";
-							}
-        						TraceFile <<"\"" << "unknown" << "\"" ;
-							entries++;
-      						} 
-						else 
-						{
-        						fputs("Not implemented", stdout);
-			      			}		
-					} 
-					else 
-     					{
-  						putchar(*format);
-    					}
-
-					format++;
+					report(name,symbol_arg_info_format[found_arg],p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
 				}
-				TraceFile << ")" << endl;
+				else
+				{
+					report(name,empty_string,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
 
-    				va_end(argp);
+				}	
 			}
 		}
 	}
@@ -597,7 +463,6 @@ int exclude_call;
 VOID Trace(TRACE trace, VOID *v)
 {
     const BOOL print_args = KnobPrintArgs.Value();
-    int loop_count; 
     //int my_length;
     int exclude_call=0; 
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
@@ -623,22 +488,8 @@ VOID Trace(TRACE trace, VOID *v)
 		    string is_all = ( string )(symbol_include_list[0] );
 		    if ( is_all.compare("*")  == 0 && exclude_call == 0 )
 		    {
-		    		int found_arg;
-				found_arg=-1;
-        			for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
-				{
-					if ( *code_name == symbol_arg_info_list[loop_count]  )
-					{
-						found_arg=loop_count;
-
-					}
-
-				}
-				if (found_arg > -1)
-				{
                     			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(Arg1Before),
-                                             IARG_PTR,  symbol_arg_info_c_str_list[found_arg],
-					     IARG_PTR, symbol_arg_info_format[found_arg],
+                                             IARG_PTR,  code_name,
 						IARG_FUNCARG_CALLSITE_VALUE, 0,
 						IARG_FUNCARG_CALLSITE_VALUE, 1,
 						IARG_FUNCARG_CALLSITE_VALUE, 2,
@@ -653,12 +504,6 @@ VOID Trace(TRACE trace, VOID *v)
 						IARG_FUNCARG_CALLSITE_VALUE, 11,
 						IARG_END);
 
-				}
-				else
-				{
-                    			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call),
-                                             IARG_PTR, Target2String(target), IARG_END);
-				}
 		    }
 		    else
 		    {
@@ -666,23 +511,9 @@ VOID Trace(TRACE trace, VOID *v)
 			{
 
 		    		
-		    		int found_arg;
-				found_arg=-1;
-        			for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
-				{
-					if ( *code_name == symbol_arg_info_list[loop_count]  )
-					{
-						found_arg=loop_count;
-
-					}
-
-				}
-				if (found_arg > -1)
-				{
                     			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(Arg1Before),
-                                             IARG_PTR,  symbol_arg_info_c_str_list[found_arg],
-					     IARG_PTR, symbol_arg_info_format[found_arg],
-				IARG_FUNCARG_CALLSITE_VALUE, 0,
+                                             IARG_PTR,  code_name,
+	     				     IARG_FUNCARG_CALLSITE_VALUE, 0,
 				IARG_FUNCARG_CALLSITE_VALUE, 1,
 				IARG_FUNCARG_CALLSITE_VALUE, 2,
 				IARG_FUNCARG_CALLSITE_VALUE, 3,
@@ -696,12 +527,6 @@ VOID Trace(TRACE trace, VOID *v)
 				IARG_FUNCARG_CALLSITE_VALUE, 11,
 					     IARG_END);
 
-				}
-				else
-				{
-                    			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call),
-                                             IARG_PTR, Target2String(target), IARG_END);
-				}
 		    	}
 		   }
                 }
@@ -727,23 +552,10 @@ VOID Trace(TRACE trace, VOID *v)
 		    		if ( is_all.compare("*") == 0 && exclude_call == 0 )
 		    		{
 
-			    		int found_arg;
-					found_arg=-1;
-       		 			for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
-					{
-						if ( call_name == symbol_arg_info_list[loop_count]  )
-						{
-							found_arg=loop_count;
-	
-						}
-
-					}
-					if (found_arg > -1)
-					{
        		             			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
+							IARG_PTR,call_name,
        		                                	IARG_BRANCH_TARGET_ADDR,
 							IARG_BRANCH_TAKEN,
-							IARG_PTR, symbol_arg_info_format[found_arg],
 							IARG_FUNCARG_CALLSITE_VALUE, 0,
 							IARG_FUNCARG_CALLSITE_VALUE, 1,
 							IARG_FUNCARG_CALLSITE_VALUE, 2,
@@ -757,13 +569,7 @@ VOID Trace(TRACE trace, VOID *v)
 							IARG_FUNCARG_CALLSITE_VALUE, 10,
 							IARG_FUNCARG_CALLSITE_VALUE, 11,
 					     			IARG_END);
-					}
-					else
-					{
 
-                    					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect),
-                       		       			     IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
-					}
 				}
 					
 				else
@@ -772,23 +578,10 @@ VOID Trace(TRACE trace, VOID *v)
 					{
 
 
-		    				int found_arg;
-						found_arg=-1;
-        					for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
-						{
-							if ( call_name == symbol_arg_info_list[loop_count]  )
-							{
-								found_arg=loop_count;
-
-							}
-
-						}
-						if (found_arg > -1)
-						{
                     					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
+									IARG_PTR,call_name,
                                              				IARG_BRANCH_TARGET_ADDR,
 									IARG_BRANCH_TAKEN,
-					     			IARG_PTR, symbol_arg_info_format[found_arg],
 								IARG_FUNCARG_CALLSITE_VALUE, 0,
 								IARG_FUNCARG_CALLSITE_VALUE, 1,
 								IARG_FUNCARG_CALLSITE_VALUE, 2,
@@ -803,14 +596,6 @@ VOID Trace(TRACE trace, VOID *v)
 								IARG_FUNCARG_CALLSITE_VALUE, 11,
 					     				IARG_END);
 
-						}
-						else
-						{
-
-
-                    						INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect),
-                       			       			     IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
-						}
 
 					}
 					
@@ -844,22 +629,9 @@ VOID Trace(TRACE trace, VOID *v)
 		    		{
 
 
-		    			int found_arg;
-					found_arg=-1;
-        				for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
-					{
-						if ( call_name == symbol_arg_info_list[loop_count]  )
-						{
-							found_arg=loop_count;
-
-						}
-
-					}
-					if (found_arg > -1)
-					{
                     				INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
+								IARG_PTR, call_name,
 								IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,
-					     		IARG_PTR, symbol_arg_info_format[found_arg],
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
@@ -874,14 +646,8 @@ VOID Trace(TRACE trace, VOID *v)
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 11,
 					     			IARG_END);
 
-				}
-				else
-				{
 
-
-                    					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect),
-                                   				IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
-				}
+				
 
 					if (is_symbol_after(&call_name) == 1 )
 					{
@@ -895,23 +661,9 @@ VOID Trace(TRACE trace, VOID *v)
 					if (is_symbol_included(&call_name ) )
 					{
 
-
-		    				int found_arg;
-					found_arg=-1;
-        				for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
-					{
-						if ( call_name == symbol_arg_info_list[loop_count]  )
-						{	
-							found_arg=loop_count;
-
-						}
-
-					}
-					if (found_arg > -1)
-					{
                     				INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
+							IARG_PTR, call_name,
 							IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,
-					     		IARG_PTR, symbol_arg_info_format[found_arg],
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
@@ -926,12 +678,6 @@ VOID Trace(TRACE trace, VOID *v)
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 11,
 					     			IARG_END);
 
-					}
-					else
-					{
-                    					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect),
-                                  				IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
-					}
 					
 						if (is_symbol_after(&call_name) == 1 )
 						{	
@@ -941,16 +687,15 @@ VOID Trace(TRACE trace, VOID *v)
 						}	
 					}
 				}
+			      }
+			   }
 			}
-		    }
-                }
-            
-        }
-        
-    }
-    
-}
+		    
+                
+    		}
+	}    
 
+}
 /* ===================================================================== */
 
 VOID Fini(INT32 code, VOID *v)
