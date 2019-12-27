@@ -117,8 +117,8 @@ VOID report(char * name,char * format,...)
 				{
 					TraceFile <<",";
 				}
-				setlocale(LC_CTYPE,"UTF-16");
-        			TraceFile <<"\"" << (wchar_t * )  va_arg(argp,  wchar_t * ) << "\"" ;
+//				wprintf (L"Text: %s \n",(wchar_t * )  va_arg(argp,  wchar_t * ) );
+        			TraceFile <<"\"" << (char16_t * )  va_arg(argp, char16_t * ) << "\"" ;
 				entries++;
 			}
 			else if (*format == 's') 
@@ -183,7 +183,6 @@ VOID Arg1Before(string * name, ...)
 		if ( *name == symbol_arg_info_list[loop_count]  )
 		{
 			found_arg=loop_count;
-			TraceFile << "Found " << *name << "In Arg1Before arg_list lookup " << endl;
 
 		}
 	}
@@ -394,7 +393,6 @@ int exclude_call;
     exclude_call = is_symbol_excluded(s);
     ADDRINT p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11;
     name = strdup(&(*s->c_str() ));
-
     va_list argp;
     va_start(argp, taken);
     p1= va_arg(argp, ADDRINT);
@@ -553,7 +551,7 @@ VOID Trace(TRACE trace, VOID *v)
 		    		{
 
        		             			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
-							IARG_PTR,call_name,
+							IARG_PTR,&call_name,
        		                                	IARG_BRANCH_TARGET_ADDR,
 							IARG_BRANCH_TAKEN,
 							IARG_FUNCARG_CALLSITE_VALUE, 0,
@@ -579,7 +577,7 @@ VOID Trace(TRACE trace, VOID *v)
 
 
                     					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
-									IARG_PTR,call_name,
+									IARG_PTR,&call_name,
                                              				IARG_BRANCH_TARGET_ADDR,
 									IARG_BRANCH_TAKEN,
 								IARG_FUNCARG_CALLSITE_VALUE, 0,
@@ -630,7 +628,7 @@ VOID Trace(TRACE trace, VOID *v)
 
 
                     				INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
-								IARG_PTR, call_name,
+								IARG_PTR, &call_name,
 								IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
@@ -662,7 +660,7 @@ VOID Trace(TRACE trace, VOID *v)
 					{
 
                     				INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
-							IARG_PTR, call_name,
+							IARG_PTR, &call_name,
 							IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
