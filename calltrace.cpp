@@ -118,7 +118,7 @@ VOID report(char * name,char * format,...)
 					TraceFile <<",";
 				}
 //				wprintf (L"Text: %s \n",(wchar_t * )  va_arg(argp,  wchar_t * ) );
-        			TraceFile <<"\"" << (char16_t * )  va_arg(argp, char16_t * ) << "\"" ;
+        			TraceFile <<"\"" << (char * )  va_arg(argp, char * ) << "\"" ;
 				entries++;
 			}
 			else if (*format == 's') 
@@ -378,7 +378,7 @@ int exclude_call;
         delete s;
 }
 
-VOID  do_call_indirect_var(string * calling_name,ADDRINT target, BOOL taken,...)
+VOID  do_call_indirect_var(char * calling_name,ADDRINT target, BOOL taken,...)
 {
 int exclude_call;
     exclude_call=0;
@@ -389,6 +389,8 @@ int exclude_call;
     string is_all = ( string )(symbol_include_list[0] );
 
     if( !taken ) return;
+
+    TraceFile << calling_name << " -> " ;
     const string *s = Target2String(target);
     exclude_call = is_symbol_excluded(s);
     ADDRINT p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11;
@@ -544,6 +546,8 @@ VOID Trace(TRACE trace, VOID *v)
 
 
 				string call_name = RTN_Name(my_rtn);
+				char * calling;
+				calling = strdup(call_name.c_str() );
 				exclude_call = is_symbol_excluded(&call_name);
 
 		    		string is_all = ( string )(symbol_include_list[0] );
@@ -551,7 +555,7 @@ VOID Trace(TRACE trace, VOID *v)
 		    		{
 
        		             			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
-							IARG_PTR,&call_name,
+							IARG_PTR,calling,
        		                                	IARG_BRANCH_TARGET_ADDR,
 							IARG_BRANCH_TAKEN,
 							IARG_FUNCARG_CALLSITE_VALUE, 0,
@@ -568,6 +572,9 @@ VOID Trace(TRACE trace, VOID *v)
 							IARG_FUNCARG_CALLSITE_VALUE, 11,
 					     			IARG_END);
 
+				
+				
+				
 				}
 					
 				else
@@ -577,7 +584,7 @@ VOID Trace(TRACE trace, VOID *v)
 
 
                     					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
-									IARG_PTR,&call_name,
+									IARG_PTR,calling,
                                              				IARG_BRANCH_TARGET_ADDR,
 									IARG_BRANCH_TAKEN,
 								IARG_FUNCARG_CALLSITE_VALUE, 0,
@@ -621,6 +628,8 @@ VOID Trace(TRACE trace, VOID *v)
 			if (RTN_Valid(rtn) )
 			{
 				string call_name=RTN_Name(rtn);
+				char * calling;
+				calling = strdup(call_name.c_str() );
 				exclude_call=is_symbol_excluded(&call_name);
 		    		string is_all = ( string )(symbol_include_list[0] );
 		    		if ( is_all.compare("*") == 0  && exclude_call == 0 )
@@ -628,7 +637,7 @@ VOID Trace(TRACE trace, VOID *v)
 
 
                     				INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
-								IARG_PTR, &call_name,
+								IARG_PTR, calling,
 								IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
@@ -660,7 +669,7 @@ VOID Trace(TRACE trace, VOID *v)
 					{
 
                     				INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
-							IARG_PTR, &call_name,
+							IARG_PTR, calling,
 							IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
