@@ -46,6 +46,7 @@ char empty_string[]="";
 /* ===================================================================== */
 /* Global Variables */
 /* ===================================================================== */
+    ADDRINT p[15];
 
 std::ofstream TraceFile;
 
@@ -154,6 +155,76 @@ VOID report(char * name,char * format,...)
 		TraceFile << ")" << endl;
 
     		va_end(argp);
+
+}
+
+
+VOID report_indirect(char * name,char * format)
+{
+	int entries;
+	
+	TraceFile << name << "("    ;
+	entries=1;
+	while (*format != '\0') 
+	{
+		if (*format == '%') 
+		{
+      			format++;
+      			if (*format == '%') 
+      			{	
+        			putchar('%');
+      			} 
+			else if (*format == 'c') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile << (char) p[entries];
+				entries++;
+
+      		        } 
+			else if (*format == 'd') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile << (int) p[entries];
+				entries++;
+      			} 
+			else if (*format == 's') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile <<"\"" << (char *) p[entries] << "\"" ;
+				entries++;
+      			} 
+			else if (*format == 'n') 
+      				{
+					if (entries > 0 )
+					{
+						TraceFile <<",";
+					}
+        				TraceFile <<"\"" << "unknown" << "\"" ;
+					entries++;
+      				} 
+				else 
+				{
+        				fputs("Not implemented", stdout);
+      				}		
+			} 
+			else 
+     			{
+  				putchar(*format);
+    			}
+
+			format++;
+		}
+		TraceFile << ")" << endl;
+
 
 }
 VOID Arg1Before(string * name, ...)
@@ -393,21 +464,20 @@ int exclude_call;
     TraceFile << calling_name << " -> " ;
     const string *s = Target2String(target);
     exclude_call = is_symbol_excluded(s);
-    ADDRINT p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11;
     name = strdup(&(*s->c_str() ));
     va_list argp;
     va_start(argp, taken);
-    p1= va_arg(argp, ADDRINT);
-    p2= va_arg(argp, ADDRINT);
-    p3= va_arg(argp, ADDRINT);
-    p4= va_arg(argp, ADDRINT);
-    p5= va_arg(argp, ADDRINT);
-    p6= va_arg(argp, ADDRINT);
-    p7= va_arg(argp, ADDRINT);
-    p8= va_arg(argp, ADDRINT);
-    p9= va_arg(argp, ADDRINT);
-    p10= va_arg(argp, ADDRINT);
-    p11= va_arg(argp, ADDRINT);
+    p[1]= va_arg(argp, ADDRINT);
+    p[2]= va_arg(argp, ADDRINT);
+    p[3]= va_arg(argp, ADDRINT);
+    p[4]= va_arg(argp, ADDRINT);
+    p[5]= va_arg(argp, ADDRINT);
+    p[6]= va_arg(argp, ADDRINT);
+    p[7]= va_arg(argp, ADDRINT);
+    p[8]= va_arg(argp, ADDRINT);
+    p[9]= va_arg(argp, ADDRINT);
+    p[10]= va_arg(argp, ADDRINT);
+    p[11]= va_arg(argp, ADDRINT);
     va_end(argp);
 	found_arg=-1;
         for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
@@ -425,11 +495,11 @@ int exclude_call;
 	{
 		if ( found_arg> -1 )
 		{
-			report(name,symbol_arg_info_format[found_arg],p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
+			report_indirect(name,symbol_arg_info_format[found_arg]);
 		}
 		else
 		{
-			report(name,empty_string,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
+			report_indirect(name,empty_string);
 		}
 	
 	}
@@ -443,11 +513,11 @@ int exclude_call;
 			{
 				if (found_arg > -1 )
 				{
-					report(name,symbol_arg_info_format[found_arg],p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
+					report_indirect(name,symbol_arg_info_format[found_arg]);
 				}
 				else
 				{
-					report(name,empty_string,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
+					report_indirect(name,empty_string);
 
 				}	
 			}
