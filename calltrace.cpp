@@ -41,6 +41,8 @@ string    symbol_arg_info_list [1000000];
 char *    symbol_arg_info_c_str_list [1000000];
 char *    symbol_arg_info_format [1000000];
 int symbol_arg_info_list_count=-1;
+string    symbol_from_lib_list [1000000];
+int symbol_from_lib_list_count=-1;
 
 char empty_string[]="";
 /* ===================================================================== */
@@ -325,7 +327,17 @@ return 0;
 /* ===================================================================== */
 const string *Target2String(ADDRINT target)
 {
+int loop_count;
     string name = RTN_FindNameByAddress(target);
+	for ( loop_count=0 ; loop_count <= symbol_from_lib_list_count  ; loop_count++ )
+	{
+		if (name == symbol_from_lib_list[loop_count] )
+		{
+			TraceFile << "FOUND " << name << " at ADDRINT " << target << endl;
+		}
+
+	}
+    
     if (name == "")
         return &invalid;
     else
@@ -345,31 +357,34 @@ VOID Image(IMG img, VOID *v)
 int loop_count;
 //int my_length;
 
-        for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
+        for ( loop_count=0 ; loop_count <= symbol_from_lib_list_count  ; loop_count++ )
 	{
-		string include_string = ( string )(symbol_arg_info_list[loop_count]) ;
+		string include_string = ( string )(symbol_from_lib_list[loop_count]) ;
 
     		RTN freeRtn = RTN_FindByName(img, include_string.c_str());
     		if (RTN_Valid(freeRtn))
     		{
         		RTN_Open(freeRtn);
+			string this_image  = IMG_Name(img);
+			ADDRINT this_img_addr =RTN_Address(freeRtn);
+			TraceFile << "FOUND " << include_string << " From " << this_image << " at ADDRINT "<< this_img_addr << endl;
         		// Instrument free() to print the input argument value.
-        		RTN_InsertCall(freeRtn, IPOINT_BEFORE, (AFUNPTR)Arg1Before,
-				IARG_ADDRINT,  symbol_arg_info_c_str_list[loop_count] ,
-				IARG_ADDRINT , symbol_arg_info_format[loop_count],
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 4,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 5,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 6,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 7,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 8,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 9,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 10,
-				IARG_FUNCARG_ENTRYPOINT_VALUE, 11,
-                       		IARG_END);
+//        		RTN_InsertCall(freeRtn, IPOINT_BEFORE, (AFUNPTR)Arg1Before,
+//				IARG_ADDRINT,  symbol_arg_info_c_str_list[loop_count] ,
+//				IARG_ADDRINT , symbol_arg_info_format[loop_count],
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 4,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 5,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 6,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 7,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 8,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 9,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 10,
+//				IARG_FUNCARG_ENTRYPOINT_VALUE, 11,
+//                      		IARG_END);
 
         		RTN_Close(freeRtn);
     		}
@@ -773,6 +788,25 @@ VOID Trace(TRACE trace, VOID *v)
 	}    
 
 }
+
+// Pin calls this function every time a new img is loaded
+// It can instrument the image, but this example does not
+// Note that imgs (including shared libraries) are loaded lazily
+
+VOID ImageLoad(IMG img, VOID *v)
+{
+    TraceFile << "Loading " << IMG_Name(img) << ", Image id = " << IMG_Id(img) << endl;
+}
+
+    // Pin calls this function every time a new img is unloaded
+    // You can't instrument an image that is about to be unloaded
+
+VOID ImageUnload(IMG img, VOID *v)
+{
+        TraceFile << "Unloading " << IMG_Name(img) << endl;
+}
+
+
 /* ===================================================================== */
 
 VOID Fini(INT32 code, VOID *v)
@@ -874,6 +908,16 @@ string line;
 		afterfile.close();
 	}
 
+	ifstream from_lib_file ("from_lib.txt");
+	if (from_lib_file.is_open())
+	{
+		while ( getline (from_lib_file,line) )
+	  	{
+    			symbol_from_lib_list_count++;
+    			symbol_from_lib_list[symbol_from_lib_list_count] =  line;
+		}
+		from_lib_file.close();
+	}
 
     TraceFile.open(KnobOutputFile.Value().c_str());
 
@@ -888,7 +932,17 @@ string line;
     TraceFile.write(trace_header.c_str(),trace_header.size());
     
     TRACE_AddInstrumentFunction(Trace, 0);
-//    IMG_AddInstrumentFunction(Image, 0);
+
+
+	// Register ImageLoad to be called when an image is loaded
+	IMG_AddInstrumentFunction(ImageLoad, 0);
+
+	// Register ImageUnload to be called when an image is unloaded
+	IMG_AddUnloadFunction(ImageUnload, 0);
+
+
+
+    IMG_AddInstrumentFunction(Image, 0);
     PIN_AddFiniFunction(Fini, 0);
 
     // Never returns
