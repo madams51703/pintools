@@ -1,0 +1,7 @@
+strlen,%s
+strcmp,%s,%s
+strcpy,%s,%s
+strchr,%s,%c
+strcoll,%s,%s
+strsep,&%s,%s
+

@@ -80,14 +80,20 @@ VOID DoAfter(ADDRINT ret,string * s)
 
 VOID report(char * name,char * format,...)
 {
+	char * char_ptr_ptr;
 	int entries;
-	
+        int ptrptr = 0; 	
 	va_list argp;
 	va_start(argp, format);
 	TraceFile << name << "("    ;
 	entries=0;
 	while (*format != '\0') 
 	{
+		if (*format == '&')
+		{
+			ptrptr=1;
+			format++;
+		}
 		if (*format == '%') 
 		{
       			format++;
@@ -130,8 +136,27 @@ VOID report(char * name,char * format,...)
 				{
 					TraceFile <<",";
 				}
-        			TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
-				entries++;
+				if (ptrptr == 1 )
+				{
+					char_ptr_ptr = (char *) * va_arg(argp,char **);
+					if (char_ptr_ptr == NULL)
+					{
+						TraceFile << "NULL";
+					}
+					else
+					{	
+
+	        				TraceFile <<"\"" << (char *)  char_ptr_ptr << "\"" ;
+					}
+
+					entries++;
+
+				}
+				else
+				{
+        				TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
+					entries++;
+				}
       			} 
 			else if (*format == 'n') 
       				{
@@ -151,7 +176,7 @@ VOID report(char * name,char * format,...)
      			{
   				putchar(*format);
     			}
-
+			ptrptr=0;
 			format++;
 		}
 		TraceFile << ")" << endl;
