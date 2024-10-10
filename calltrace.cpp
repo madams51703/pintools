@@ -80,114 +80,93 @@ VOID DoAfter(ADDRINT ret,string * s)
 
 VOID report(char * name,char * format,...)
 {
-	char * char_ptr_ptr;
 	int entries;
         int ptrptr=0;	
 	va_list argp;
 	va_start(argp, format);
 	TraceFile << name << "("    ;
 	entries=0;
+
 	while (*format != '\0') 
 	{
-		ptrptr=0;
-		if (*format == '&')
-		{
-			ptrptr=1;
-			format++;
-                }
 
+               ptrptr=0;
+                if (*format == '&')
+                {
+                        ptrptr=1;
+                        format++;
+                }
 		if (*format == '%') 
 		{
       			format++;
-      			if (*format == '%') 
-      			{	
+                        switch (*format)
+			{
+			case '%':
         			putchar('%');
-      			} 
-			else if (*format == 'c') 
-      			{
+			case 'c':
+				
 				if (entries > 0 )
 				{
 					TraceFile <<",";
 				}
-        			TraceFile << (char) va_arg(argp, int);
+				TraceFile << (char) va_arg(argp, int);
 				entries++;
-
-      		        } 
-			else if (*format == 'l') 
-      			{
+				break;
+			case 'l':
 				if (entries > 0 )
 				{
 					TraceFile <<",";
 				}
-        			TraceFile << std::dec << (long ) va_arg(argp, long);
-				entries++;
-      			} 
-			else if (*format == 'd') 
-      			{
-				if (entries > 0 )
+				if (ptrptr == 1)
 				{
-					TraceFile <<",";
-				}
-        			TraceFile << (int) va_arg(argp, int);
-				entries++;
-      			} 
-			else if (*format == 'u') 
-      			{
-				if (entries > 0 )
-				{
-					TraceFile <<",";
-				}
-//				wprintf (L"Text: %s \n",(wchar_t * )  va_arg(argp,  wchar_t * ) );
-        			TraceFile <<"\"" << (char * )  va_arg(argp, char * ) << "\"" ;
-				entries++;
-			}
-			else if (*format == 's') 
-      			{
-				if (entries > 0 )
-				{
-					TraceFile <<",";
-				}
-				if (ptrptr==1)
-				{
-        				char_ptr_ptr=(char *) *va_arg(argp,char **);
-					if (char_ptr_ptr == NULL)
-					{
-						TraceFile << "NULL" ; 
-					}
-					else
-					{
-
-        			//		TraceFile <<"\"" << char_ptr_ptr << "\"" ;
-					}
+					TraceFile << std::dec << (long) * va_arg(argp, long *);
 				}
 				else
 				{
-        				TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
-					
+					TraceFile << std::dec << (long) va_arg(argp, long );
+
 				}
 				entries++;
-      			} 
-			else if (*format == 'n') 
-      				{
-					if (entries > 0 )
-					{
-						TraceFile <<",";
-					}
-        				TraceFile <<"\"" << "unknown" << "\"" ;
-					entries++;
-      				} 
-				else 
+				break;
+			case 'd':
+				if (entries > 0 )
 				{
-        				fputs("Not implemented", stdout);
-      				}		
+					TraceFile <<",";
+				}
+				if (ptrptr == 1)
+				{
+					TraceFile << std::dec << (int) * va_arg(argp, int *);
+				}
+				else
+				{
+					TraceFile << std::dec << (int) va_arg(argp, int);
+
+				}
+				entries++;
+				break;
+			case 's':
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+				if (ptrptr == 1)
+				{
+					TraceFile <<"\"" << (char *) * va_arg(argp,char **) << "\"" ;
+				}
+				else
+				{
+					TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
+
+				}		
+		
+				entries++;
+				break;
 			} 
-			else 
-     			{
-  				putchar(*format);
-    			}
 
 			format++;
 		}
+	}
+
 		TraceFile << ")" << endl;
 
     		va_end(argp);
