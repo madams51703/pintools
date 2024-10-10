@@ -82,18 +82,20 @@ VOID report(char * name,char * format,...)
 {
 	char * char_ptr_ptr;
 	int entries;
-        int ptrptr = 0; 	
+        int ptrptr=0;	
 	va_list argp;
 	va_start(argp, format);
 	TraceFile << name << "("    ;
 	entries=0;
 	while (*format != '\0') 
 	{
+		ptrptr=0;
 		if (*format == '&')
 		{
 			ptrptr=1;
 			format++;
-		}
+                }
+
 		if (*format == '%') 
 		{
       			format++;
@@ -111,6 +113,15 @@ VOID report(char * name,char * format,...)
 				entries++;
 
       		        } 
+			else if (*format == 'l') 
+      			{
+				if (entries > 0 )
+				{
+					TraceFile <<",";
+				}
+        			TraceFile << std::dec << (long ) va_arg(argp, long);
+				entries++;
+      			} 
 			else if (*format == 'd') 
       			{
 				if (entries > 0 )
@@ -136,27 +147,25 @@ VOID report(char * name,char * format,...)
 				{
 					TraceFile <<",";
 				}
-				if (ptrptr == 1 )
+				if (ptrptr==1)
 				{
-					char_ptr_ptr = (char *) * va_arg(argp,char **);
+        				char_ptr_ptr=(char *) *va_arg(argp,char **);
 					if (char_ptr_ptr == NULL)
 					{
-						TraceFile << "NULL";
+						TraceFile << "NULL" ; 
 					}
 					else
-					{	
+					{
 
-	        				TraceFile <<"\"" << (char *)  char_ptr_ptr << "\"" ;
+        			//		TraceFile <<"\"" << char_ptr_ptr << "\"" ;
 					}
-
-					entries++;
-
 				}
 				else
 				{
         				TraceFile <<"\"" << (char *) va_arg(argp,char *) << "\"" ;
-					entries++;
+					
 				}
+				entries++;
       			} 
 			else if (*format == 'n') 
       				{
@@ -176,7 +185,7 @@ VOID report(char * name,char * format,...)
      			{
   				putchar(*format);
     			}
-			ptrptr=0;
+
 			format++;
 		}
 		TraceFile << ")" << endl;
