@@ -105,7 +105,21 @@ VOID report(char * name,char * format,...)
         			putchar('%');
 				break;
 
+                        case 'r':
+                                if (entries > 0 )
+                                {
+                                        TraceFile <<",";
+                                }
+
+                       		TraceFile <<"Code: " << RTN_FindNameByAddress(va_arg(argp,ADDRINT) );
+				entries++;
+				break;
+
                         case 'p':
+                                if (entries > 0 )
+                                {
+                                        TraceFile <<",";
+                                }
 				va_arg(argp,void *);
 				entries++;
 				break;
