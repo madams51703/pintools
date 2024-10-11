@@ -103,6 +103,26 @@ VOID report(char * name,char * format,...)
 			{
 			case '%':
         			putchar('%');
+				break;
+
+                        case 'p':
+				va_arg(argp,void *);
+				entries++;
+				break;
+
+                        case 'v':
+                                if (entries > 0 )
+                                {
+                                        TraceFile <<",";
+                                }
+                                if (ptrptr == 1)
+				{
+                                        TraceFile << std::hex << (void *)  va_arg(argp,void *);
+				}
+				entries++;
+				break;
+
+			                               
 			case 'c':
 				
 				if (entries > 0 )
