@@ -80,6 +80,10 @@ VOID DoAfter(ADDRINT ret,string * s)
 
 VOID report(char * name,char * format,...)
 {
+	int * int_ptr;
+	long * long_ptr;
+	void * void_ptr;
+        char ** char_ptr;
 	int entries;
         int ptrptr=0;	
 	va_list argp;
@@ -131,7 +135,15 @@ VOID report(char * name,char * format,...)
                                 }
                                 if (ptrptr == 1)
 				{
-                                        TraceFile << std::hex << (void *)  va_arg(argp,void *);
+					void_ptr = va_arg(argp, void * );
+					if ( void_ptr == NULL )
+					{
+						TraceFile << "NULL" ;
+					}
+					else
+					{
+                                        	TraceFile << std::hex << (void *)  void_ptr ;
+					}
 				}
 				entries++;
 				break;
@@ -153,7 +165,15 @@ VOID report(char * name,char * format,...)
 				}
 				if (ptrptr == 1)
 				{
-					TraceFile << std::dec << (long) * va_arg(argp, long *);
+					long_ptr = va_arg(argp, long * );
+					if ( long_ptr == NULL )
+					{
+						TraceFile << "NULL" ;
+					}
+					else
+					{
+						TraceFile << std::dec << (long) * long_ptr;
+					}
 				}
 				else
 				{
@@ -169,7 +189,15 @@ VOID report(char * name,char * format,...)
 				}
 				if (ptrptr == 1)
 				{
-					TraceFile << std::dec << (int) * va_arg(argp, int *);
+					int_ptr = va_arg(argp, int *);
+					if ( int_ptr == NULL )
+					{
+						TraceFile << "NULL" ;
+					}
+					else
+					{
+						TraceFile << std::dec << (int) * int_ptr ;
+					}
 				}
 				else
 				{
@@ -185,7 +213,15 @@ VOID report(char * name,char * format,...)
 				}
 				if (ptrptr == 1)
 				{
-					TraceFile <<"\"" << (char *) * va_arg(argp,char **) << "\"" ;
+					char_ptr = va_arg(argp, char **);
+					if ( char_ptr == NULL )
+					{
+						TraceFile << "NULL" ;
+					}
+					else
+					{
+						TraceFile <<"\"" << (char *) * char_ptr << "\"" ;
+					}
 				}
 				else
 				{
