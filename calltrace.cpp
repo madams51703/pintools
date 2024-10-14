@@ -19,6 +19,7 @@
 #include <string>
 #include <locale.h>
 #include <wchar.h>
+#include <map>
 using namespace std;
 using std::hex;
 using std::cerr;
@@ -27,10 +28,11 @@ using std::ios;
 using std::endl;
 using std::basic_string;
 string current_target;
-string    symbol_exclude_list [1000000];
-int symbol_exclude_list_count=-1;
-string    symbol_include_list [1000000];
-int symbol_include_list_count=-1;
+
+std::map<std::string,char * > arg_lookup;
+std::map<std::string,std::string > symbol_include_list;
+std::map<std::string,std::string  > symbol_exclude_list;
+
 string    symbol_after_list [1000000];
 int symbol_after_list_count=-1;
 string    symbol_between_list [1000000];
@@ -90,7 +92,6 @@ VOID report(char * name,char * format,...)
 	va_start(argp, format);
 	TraceFile << name << "("    ;
 	entries=0;
-
 	while (*format != '\0') 
 	{
 
@@ -314,8 +315,11 @@ VOID report_indirect(char * name,char * format)
 }
 VOID Arg1Before(string * name, ...)
 {
+/*
 	int found_arg;
 	int loop_count;
+*/
+	char * my_arg_list;
     ADDRINT p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11;
         char * call_name;
  va_list argp;
@@ -333,7 +337,10 @@ VOID Arg1Before(string * name, ...)
     p11= va_arg(argp, ADDRINT);
     va_end(argp);
     call_name = strdup(name->c_str() );
+    my_arg_list = arg_lookup[call_name];
+/*
 	found_arg=-1;
+	
         for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
 	{
 		if ( *name == symbol_arg_info_list[loop_count]  )
@@ -342,10 +349,17 @@ VOID Arg1Before(string * name, ...)
 
 		}
 	}
-
+*/
+/*
     if (found_arg > -1)
     {
     	report(call_name,symbol_arg_info_format[found_arg],p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
+    }
+
+*/
+    if (my_arg_list != NULL )
+    {
+    	report(call_name,my_arg_list,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
     }
     else
     {
@@ -356,21 +370,16 @@ VOID Arg1Before(string * name, ...)
 
 int is_symbol_excluded(const string * string_to_test)
 {
-int loop_count;
-int my_length;
-
-	for ( loop_count=0 ; loop_count <= symbol_exclude_list_count  ; loop_count++ )
-	{
-		string exclude_string = ( string )(symbol_exclude_list[loop_count]) ;
-		my_length = exclude_string.length();
-		if ( (*string_to_test).compare(0,my_length,exclude_string,0,my_length) == 0 )
-			{
-				return 1;	
-			}
-	}
-	
-return 0;
-
+std::string sym_excluded;
+		sym_excluded = symbol_exclude_list[*string_to_test];
+		if ( sym_excluded.compare("") !=0 )
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
 }
 
 int is_symbol_after(const string * string_to_test)
@@ -392,19 +401,17 @@ return 0;
 
 int is_symbol_included(const string * string_to_test)
 {
-int loop_count;
-int my_length;
-
-	for ( loop_count=0 ; loop_count <= symbol_include_list_count  ; loop_count++ )
+std::string sym_included;
+	sym_included = symbol_include_list[*string_to_test];	
+	if (sym_included.compare("") == 0 )
 	{
-		string include_string = ( string )(symbol_include_list[loop_count]) ;
-		my_length = include_string.length();
-		if ( (*string_to_test).compare(0,my_length,include_string,0,my_length) == 0 )
-			{
-				return 1;	
-			}
+		return 0;
 	}
-return 0;
+	else
+	{
+		return 1;
+	}
+
 
 }
 /* ===================================================================== */
@@ -516,9 +523,9 @@ VOID  do_call_indirect(ADDRINT target, BOOL taken)
 {
 int exclude_call;
     exclude_call=0;
-    int loop_count;
     //int my_length;
-    string is_all = ( string )(symbol_include_list[0] );
+    string is_all ;
+    is_all = symbol_include_list["*"] ;
 
     if( !taken ) return;
     const string *s = Target2String(target);
@@ -531,14 +538,9 @@ int exclude_call;
 	}
 	else
 	{
-		for ( loop_count=0 ; loop_count <= symbol_include_list_count  && exclude_call ==0 ; loop_count++ )
+		if (symbol_include_list[*s].compare("") == 0 )
 		{
-			string my_string = ( string )(symbol_include_list[loop_count]) ;
-		    	int my_length = my_string.length();
-		   	if ( (*s).compare(0,my_length,my_string,0,my_length) == 0 )
-			{
     				do_call( s );
-			}
 		}
 	}
     }
@@ -552,10 +554,10 @@ VOID  do_call_indirect_var(char * calling_name,ADDRINT target, BOOL taken,...)
 int exclude_call;
     exclude_call=0;
     char * name;
-    int found_arg;
-    int loop_count;
+    char *   found_arg = NULL;
+    string str_found_arg;
     //int my_length;
-    string is_all = ( string )(symbol_include_list[0] );
+    string is_all = symbol_include_list["*"] ;
 
     if( !taken ) return;
 
@@ -577,23 +579,15 @@ int exclude_call;
     p[10]= va_arg(argp, ADDRINT);
     p[11]= va_arg(argp, ADDRINT);
     va_end(argp);
-	found_arg=-1;
-        for ( loop_count=0 ; loop_count <= symbol_arg_info_list_count  ; loop_count++ )
-	{
-		if ( *s == symbol_arg_info_list[loop_count]  )
-		{
-			found_arg=loop_count;
-
-		}
-	}
+	found_arg = arg_lookup[*s];
 
     if ( exclude_call == 0 )
     {
 	if ( is_all.compare("*")  == 0 && exclude_call == 0 )
 	{
-		if ( found_arg> -1 )
+		if ( found_arg  != NULL )
 		{
-			report_indirect(name,symbol_arg_info_format[found_arg]);
+			report_indirect(name,found_arg);
 		}
 		else
 		{
@@ -603,28 +597,25 @@ int exclude_call;
 	}
 	else
 	{
-		for ( loop_count=0 ; loop_count <= symbol_include_list_count  && exclude_call ==0 ; loop_count++ )
-		{
-			string my_string = ( string )(symbol_include_list[loop_count]) ;
-		    	int my_length = my_string.length();
-		   	if ( (*s).compare(0,my_length,my_string,0,my_length) == 0 )
-			{
-				if (found_arg > -1 )
+			found_arg = (char *) symbol_exclude_list[*s].c_str();	
+
+				if (found_arg != NULL )
 				{
-					report_indirect(name,symbol_arg_info_format[found_arg]);
+					report_indirect(name,found_arg);
 				}
 				else
 				{
 					report_indirect(name,empty_string);
 
 				}	
-			}
+			
 		}
 	}
-    }
     
-    if (s != &invalid)
+    if (s != &invalid) 
+	{
         delete s;
+	}
 }
 /* ===================================================================== */
 
@@ -653,7 +644,7 @@ VOID Trace(TRACE trace, VOID *v)
                 else
                 {
 		    exclude_call = is_symbol_excluded(code_name);
-		    string is_all = ( string )(symbol_include_list[0] );
+		    string is_all = symbol_include_list["*"] ;
 		    if ( is_all.compare("*")  == 0 && exclude_call == 0 )
 		    {
                     			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(Arg1Before),
@@ -718,7 +709,7 @@ VOID Trace(TRACE trace, VOID *v)
 				calling = strdup(call_name.c_str() );
 				exclude_call = is_symbol_excluded(&call_name);
 
-		    		string is_all = ( string )(symbol_include_list[0] );
+		    		string is_all = symbol_include_list["*"] ;
 		    		if ( is_all.compare("*") == 0 && exclude_call == 0 )
 		    		{
 
@@ -799,7 +790,7 @@ VOID Trace(TRACE trace, VOID *v)
 				char * calling;
 				calling = strdup(call_name.c_str() );
 				exclude_call=is_symbol_excluded(&call_name);
-		    		string is_all = ( string )(symbol_include_list[0] );
+		    		string is_all = symbol_include_list["*"] ;
 		    		if ( is_all.compare("*") == 0  && exclude_call == 0 )
 		    		{
 
@@ -917,6 +908,7 @@ string line;
 	std::size_t current,previous = 0;
 //	std::size_t npos = 0;
 	string format;
+	char * current_symbol_name = NULL;
 	string format_part;
 	int entry = 0;
 	ifstream arg_infofile ("arg_info.txt");
@@ -934,8 +926,10 @@ string line;
 			while (current != std::string::npos) {
 				if ( entry == 0 )
 				{
+				
     					symbol_arg_info_list[symbol_arg_info_list_count] =   line.substr(previous, current - previous);
 					symbol_arg_info_c_str_list[symbol_arg_info_list_count] = strdup ( (line.substr(previous, current - previous) ).c_str() );
+					current_symbol_name =  strdup ( (line.substr(previous, current - previous) ).c_str() );
 				}
 				else
 				{
@@ -955,16 +949,18 @@ string line;
 			}
 			symbol_arg_info_format [symbol_arg_info_list_count] = strdup(format.c_str() );
 			
+			arg_lookup[current_symbol_name] = strdup(format.c_str() );
+
 		}
 		arg_infofile.close();
 	}
+
 	ifstream myfile ("include.txt");
 	if (myfile.is_open())
 	{
 		while ( getline (myfile,line) )
 	  	{
-    			symbol_include_list_count++;
-    			symbol_include_list[symbol_include_list_count] =  line;
+    			symbol_include_list[line] =  line;
 		}
 		myfile.close();
 	}
@@ -974,8 +970,7 @@ string line;
 	{
 		while ( getline (excludefile,line) )
 	  	{
-    			symbol_exclude_list_count++;
-    			symbol_exclude_list[symbol_exclude_list_count] =  line;
+    			symbol_exclude_list[line] =  line;
 		}
 		excludefile.close();
 	}
