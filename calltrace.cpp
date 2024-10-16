@@ -864,6 +864,11 @@ VOID Trace(TRACE trace, VOID *v)
 
 }
 
+VOID  FollowFork(THREADID threadid, const CONTEXT *ctxt, VOID *v )
+{
+    current_pid = PIN_GetPid();
+}
+
 BOOL FollowChild(CHILD_PROCESS cProcess, VOID* userData)
 {
     current_pid = PIN_GetPid();
@@ -911,7 +916,7 @@ string line;
         return Usage();
     }
       PIN_AddFollowChildProcessFunction(FollowChild, 0);    
-
+      PIN_AddForkFunction(FPOINT_AFTER_IN_CHILD,FollowFork,0);
    // Load argument data that we know about 
 	std::size_t current,previous = 0;
 //	std::size_t npos = 0;
