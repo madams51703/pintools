@@ -33,6 +33,7 @@ std::map<std::string,char * > arg_lookup;
 std::map<std::string,std::string > symbol_include_list;
 std::map<std::string,std::string  > symbol_exclude_list;
 
+int       current_pid = -1;
 string    symbol_after_list [1000000];
 int symbol_after_list_count=-1;
 string    symbol_between_list [1000000];
@@ -90,7 +91,7 @@ VOID report(char * name,char * format,...)
         int ptrptr=0;	
 	va_list argp;
 	va_start(argp, format);
-	TraceFile << name << "("    ;
+ 	TraceFile << std::dec << current_pid <<" - " << name << "("    ;
 	entries=0;
 	while (*format != '\0') 
 	{
@@ -248,8 +249,8 @@ VOID report(char * name,char * format,...)
 VOID report_indirect(char * name,char * format)
 {
 	int entries;
+ 	TraceFile << std::dec << current_pid <<" - " << name << "("    ;
 	
-	TraceFile << name << "("    ;
 	entries=1;
 	while (*format != '\0') 
 	{
@@ -863,6 +864,12 @@ VOID Trace(TRACE trace, VOID *v)
 
 }
 
+BOOL FollowChild(CHILD_PROCESS cProcess, VOID* userData)
+{
+    current_pid = PIN_GetPid();
+    return TRUE;
+}
+
 // Pin calls this function every time a new img is loaded
 // It can instrument the image, but this example does not
 // Note that imgs (including shared libraries) are loaded lazily
@@ -903,7 +910,8 @@ string line;
     {
         return Usage();
     }
-    
+      PIN_AddFollowChildProcessFunction(FollowChild, 0);    
+
    // Load argument data that we know about 
 	std::size_t current,previous = 0;
 //	std::size_t npos = 0;
@@ -1019,10 +1027,10 @@ string line;
 	IMG_AddUnloadFunction(ImageUnload, 0);
 
 
-
+    
     IMG_AddInstrumentFunction(Image, 0);
     PIN_AddFiniFunction(Fini, 0);
-
+    current_pid = PIN_GetPid();
     // Never returns
 
     PIN_StartProgram();
