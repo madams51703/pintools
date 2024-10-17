@@ -338,7 +338,10 @@ VOID Arg1Before(string * name, ...)
     p11= va_arg(argp, ADDRINT);
     va_end(argp);
     call_name = strdup(name->c_str() );
+
     my_arg_list = arg_lookup[call_name];
+
+
 /*
 	found_arg=-1;
 	
@@ -358,14 +361,17 @@ VOID Arg1Before(string * name, ...)
     }
 
 */
+
     if (my_arg_list != NULL )
     {
     	report(call_name,my_arg_list,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
     }
+/*
     else
     {
     	report(call_name,empty_string,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11);
     }
+*/
 
 }
 
@@ -514,8 +520,9 @@ int exclude_call;
 /* ===================================================================== */
 
 VOID  do_call(const string *s)
-{
-    TraceFile << *s << endl;
+{ 
+    TraceFile << current_pid <<" - " << *s << "(" << " "<< ")" <<endl;
+
 }
 
 /* ===================================================================== */
@@ -625,6 +632,7 @@ VOID Trace(TRACE trace, VOID *v)
     const BOOL print_args = KnobPrintArgs.Value();
     //int my_length;
     int exclude_call=0; 
+
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
     {
         exclude_call=0;
@@ -634,6 +642,7 @@ VOID Trace(TRACE trace, VOID *v)
         {
             if( INS_IsDirectControlFlow(tail) )
             {
+
                 const ADDRINT target = INS_DirectControlFlowTargetAddress(tail);
                 const string  * code_name =  Target2String(target); 
 
@@ -646,7 +655,8 @@ VOID Trace(TRACE trace, VOID *v)
                 {
 		    exclude_call = is_symbol_excluded(code_name);
 		    string is_all = symbol_include_list["*"] ;
-		    if ( is_all.compare("*")  == 0 && exclude_call == 0 )
+		    char * known = arg_lookup[*code_name];
+		    if ( is_all.compare("*")  == 0 && exclude_call == 0 && known != NULL )
 		    {
                     			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(Arg1Before),
                                              IARG_PTR,  code_name,
@@ -663,6 +673,13 @@ VOID Trace(TRACE trace, VOID *v)
 						IARG_FUNCARG_CALLSITE_VALUE, 10,
 						IARG_FUNCARG_CALLSITE_VALUE, 11,
 						IARG_END);
+
+		    }
+		    else if ( is_all.compare("*")  == 0 && exclude_call == 0 && known == NULL )
+		    {
+
+                    	INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call),
+                                     IARG_PTR, code_name,IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_END);
 
 		    }
 		    else
@@ -711,7 +728,8 @@ VOID Trace(TRACE trace, VOID *v)
 				exclude_call = is_symbol_excluded(&call_name);
 
 		    		string is_all = symbol_include_list["*"] ;
-		    		if ( is_all.compare("*") == 0 && exclude_call == 0 )
+				
+		    		if ( is_all.compare("*") == 0 && exclude_call == 0   )
 		    		{
 
        		             			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
