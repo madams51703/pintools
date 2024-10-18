@@ -20,6 +20,8 @@
 #include <locale.h>
 #include <wchar.h>
 #include <map>
+#include <csignal>
+
 using namespace std;
 using std::hex;
 using std::cerr;
@@ -33,6 +35,7 @@ std::map<std::string,char * > arg_lookup;
 std::map<std::string,std::string > symbol_include_list;
 std::map<std::string,std::string  > symbol_exclude_list;
 
+int 	  debug=0;
 int       current_pid = -1;
 string    symbol_after_list [1000000];
 int symbol_after_list_count=-1;
@@ -62,6 +65,14 @@ std::ofstream TraceFile;
 KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "calltrace.out", "specify trace file name");
 KNOB<BOOL>   KnobPrintArgs(KNOB_MODE_WRITEONCE, "pintool", "a", "0", "print call arguments ");
 //KNOB<BOOL>   KnobPrintArgs(KNOB_MODE_WRITEONCE, "pintool", "i", "0", "mark indirect calls ");
+
+
+
+void signal_handler(int signal)
+{
+    PIN_Detach();
+}
+
 
 /* ===================================================================== */
 /* Print Help Message                                                    */
@@ -116,8 +127,10 @@ VOID report(char * name,char * format,...)
                                 {
                                         TraceFile <<",";
                                 }
-
-                       		TraceFile <<"Code: " << RTN_FindNameByAddress(va_arg(argp,ADDRINT) );
+				if ( debug == 1)
+				{
+                       			TraceFile <<"Code: " << RTN_FindNameByAddress(va_arg(argp,ADDRINT) );
+				}
 				entries++;
 				break;
 
@@ -491,7 +504,7 @@ int loop_count;
 
 VOID  do_call_args(const string *s, ADDRINT arg0)
 {
-    TraceFile << *s << "(" << arg0 << ",...)" << endl;
+    TraceFile <<std::dec << current_pid << *s << "(" << arg0 << ",...)" << endl;
 }
 
 /* ===================================================================== */
@@ -557,7 +570,7 @@ int exclude_call;
         delete s;
 }
 
-VOID  do_call_indirect_var(char * calling_name,ADDRINT target, BOOL taken,...)
+VOID  do_call_indirect_var(char * calling_name,ADDRINT target, BOOL taken,char *format,...)
 {
 int exclude_call;
     exclude_call=0;
@@ -574,7 +587,7 @@ int exclude_call;
     exclude_call = is_symbol_excluded(s);
     name = strdup(&(*s->c_str() ));
     va_list argp;
-    va_start(argp, taken);
+    va_start(argp, format);
     p[1]= va_arg(argp, ADDRINT);
     p[2]= va_arg(argp, ADDRINT);
     p[3]= va_arg(argp, ADDRINT);
@@ -587,8 +600,7 @@ int exclude_call;
     p[10]= va_arg(argp, ADDRINT);
     p[11]= va_arg(argp, ADDRINT);
     va_end(argp);
-	found_arg = arg_lookup[*s];
-
+	found_arg = format; 
     if ( exclude_call == 0 )
     {
 	if ( is_all.compare("*")  == 0 && exclude_call == 0 )
@@ -599,6 +611,7 @@ int exclude_call;
 		}
 		else
 		{
+
 			report_indirect(name,empty_string);
 		}
 	
@@ -624,6 +637,7 @@ int exclude_call;
 	{
         delete s;
 	}
+
 }
 /* ===================================================================== */
 
@@ -728,14 +742,20 @@ VOID Trace(TRACE trace, VOID *v)
 				exclude_call = is_symbol_excluded(&call_name);
 
 		    		string is_all = symbol_include_list["*"] ;
-				
+			        char * known_format = arg_lookup[calling];
 		    		if ( is_all.compare("*") == 0 && exclude_call == 0   )
 		    		{
+						if (debug == 1)
+						{
+							TraceFile << "DEBUG 22" << endl;
+						}
 
        		             			INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
 							IARG_PTR,calling,
        		                                	IARG_BRANCH_TARGET_ADDR,
 							IARG_BRANCH_TAKEN,
+						        IARG_PTR,
+							known_format,
 							IARG_FUNCARG_CALLSITE_VALUE, 0,
 							IARG_FUNCARG_CALLSITE_VALUE, 1,
 							IARG_FUNCARG_CALLSITE_VALUE, 2,
@@ -759,12 +779,16 @@ VOID Trace(TRACE trace, VOID *v)
 				{
 					if (is_symbol_included(&call_name ) )
 					{
-
-
+							if (debug == 1 )
+							{
+								TraceFile << "DEBUG 10" << endl;
+							}
                     					INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
 									IARG_PTR,calling,
                                              				IARG_BRANCH_TARGET_ADDR,
 									IARG_BRANCH_TAKEN,
+							        IARG_PTR,
+								known_format,
 								IARG_FUNCARG_CALLSITE_VALUE, 0,
 								IARG_FUNCARG_CALLSITE_VALUE, 1,
 								IARG_FUNCARG_CALLSITE_VALUE, 2,
@@ -810,13 +834,19 @@ VOID Trace(TRACE trace, VOID *v)
 				calling = strdup(call_name.c_str() );
 				exclude_call=is_symbol_excluded(&call_name);
 		    		string is_all = symbol_include_list["*"] ;
+			        char * known_format = arg_lookup[calling];
 		    		if ( is_all.compare("*") == 0  && exclude_call == 0 )
 		    		{
-
-
+						if (debug == 1 )
+						{
+							TraceFile << "DEBUG 21" << endl;
+						}
                     				INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
 								IARG_PTR, calling,
 								IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,
+								IARG_PTR,
+								known_format,
+							         
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
 							IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
@@ -845,6 +875,10 @@ VOID Trace(TRACE trace, VOID *v)
 				{
 					if (is_symbol_included(&call_name ) )
 					{
+						if ( debug == 1 )
+						{
+							TraceFile << "DEBUG 22" << endl;
+						}
 
                     				INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_indirect_var),
 							IARG_PTR, calling,
@@ -933,6 +967,7 @@ string line;
     {
         return Usage();
     }
+      std::signal(SIGUSR1,signal_handler);
       PIN_AddFollowChildProcessFunction(FollowChild, 0);    
       PIN_AddForkFunction(FPOINT_AFTER_IN_CHILD,FollowFork,0);
    // Load argument data that we know about 
