@@ -1,0 +1,30 @@
+#include <stdio.h>
+#include <string.h>
+EXEC SQL INCLUDE sqlda;
+EXEC SQL INCLUDE sqlca;
+int main()
+{
+    EXEC SQL BEGIN DECLARE SECTION;
+        VARCHAR  username[128];
+        VARCHAR  password[32];
+        VARCHAR  oracledbstring[256];
+ EXEC SQL END DECLARE SECTION;
+
+        strcpy(username.arr,"/");
+        strcpy(password.arr,"");
+        strcpy(oracledbstring.arr,"@localhost/yoursid");
+
+printf("Before Connect\n");
+EXEC SQL CONNECT :username IDENTIFIED BY :password USING :oracledbstring ;
+printf("After Connect\n");
+if (sqlca.sqlcode==0)
+{
+printf("sucessful\n");
+}
+else
+{
+printf("failed %d\n",sqlca.sqlcode);
+}
+
+sleep(600);
+}
